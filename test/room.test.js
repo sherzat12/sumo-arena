@@ -211,3 +211,59 @@ test('8 игроков со случайным вводом 40 секунд: м�
   for (const b of room.boxes) assert.ok(Number.isFinite(b.position.y));
   assert.ok(room.world.bodies.length <= 1 + CONFIG.box.count + 8);
 });
+
+// ---------- боты ----------
+
+test('боты добавляются, убираются и не вытесняют людей', () => {
+  const room = new Room('T', seeded());
+  room.addPlayer(1, 'Человек');
+  room.setBots(3, 'hard');
+  assert.equal(room.botCount, 3);
+  assert.equal(room.size, 4);
+  room.setBots(1);
+  assert.equal(room.botCount, 1);
+  room.setBots(99); // больше мест нет — упираемся в maxPlayers
+  assert.equal(room.size, CONFIG.maxPlayers);
+  // человек заходит в комнату, забитую ботами — один бот уступает место
+  assert.ok(room.addPlayer(2, 'Друг'));
+  assert.equal(room.size, CONFIG.maxPlayers);
+  assert.equal(room.botCount, CONFIG.maxPlayers - 2);
+  // бот не может занять последнее место сам
+  assert.equal(room.addBot(), null);
+  assert.ok([...room.players.values()].filter((p) => !p.bot).length === 2);
+});
+
+test('боты дерутся друг с другом: очки набираются, сами в лаву падают редко', () => {
+  for (const level of ['easy', 'normal', 'hard']) {
+    const room = new Room('T', seeded(7));
+    room.setBots(4, level);
+    let falls = 0, selfFalls = 0, kills = 0;
+    run(room, 120, () => {
+      for (const e of room.events) {
+        if (e.k === 'fall') { falls++; if (e.by == null) selfFalls++; else kills++; }
+      }
+      room.events = [];
+    });
+    assert.ok(kills >= 3, `${level}: боты почти не сталкивают друг друга (kills=${kills}, falls=${falls})`);
+    assert.ok(selfFalls <= falls * 0.5, `${level}: слишком много самопадений (${selfFalls} из ${falls})`);
+    assert.ok([...room.players.values()].every((p) => Number.isFinite(p.body.position.x)));
+  }
+});
+
+test('один бот в пустой комнате спокойно стоит и не падает', () => {
+  const room = new Room('T', seeded(3));
+  room.setBots(1, 'normal');
+  let falls = 0;
+  run(room, 60, () => { for (const e of room.events) if (e.k === 'fall') falls++; room.events = []; });
+  assert.equal(falls, 0);
+});
+
+test('бот против неподвижного человека побеждает (сбрасывает его)', () => {
+  const room = new Room('T', seeded(5));
+  const human = room.addPlayer(1, 'Статуя');
+  room.setBots(1, 'hard');
+  let humanFalls = 0;
+  run(room, 90, () => { for (const e of room.events) if (e.k === 'fall' && e.id === 1) humanFalls++; room.events = []; });
+  assert.ok(humanFalls >= 1, 'hard-бот ни разу не столкнул неподвижного игрока');
+  assert.ok(human);
+});

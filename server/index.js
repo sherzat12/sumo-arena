@@ -6,6 +6,7 @@ import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { Room } from './room.js';
+import { cleanLevel } from './bot.js';
 import { CONFIG } from '../shared/config.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -135,7 +136,8 @@ export function startServer({ port = 3000, host = '0.0.0.0' } = {}) {
     const name = cleanName(msg.name) || `Игрок ${conn.id}`;
     const code = cleanCode(msg.room) || randomCode();
     let h = hosts.get(code);
-    if (!h) {
+    const created = !h;
+    if (created) {
       h = { room: new Room(code), clients: new Map(), acc: 0, sinceSend: 0 };
       hosts.set(code, h);
     }
@@ -148,6 +150,11 @@ export function startServer({ port = 3000, host = '0.0.0.0' } = {}) {
     conn.player = player;
     conn.lastInput = Date.now();
     h.clients.set(conn.id, conn);
+    // Боты заказываются при создании комнаты (в чужую комнату по коду их не добавляем).
+    if (created) {
+      const n = Math.max(0, Math.min(CONFIG.maxPlayers - 1, Math.trunc(Number(msg.bots)) || 0));
+      h.room.setBots(n, cleanLevel(msg.level));
+    }
     send(conn.ws, { type: 'welcome', id: conn.id, room: code });
     broadcast(h, h.room.rosterMessage());
   }
@@ -178,6 +185,12 @@ export function startServer({ port = 3000, host = '0.0.0.0' } = {}) {
       else if (msg.type === 'input' && conn.host) {
         conn.lastInput = Date.now();
         conn.host.room.setInput(conn.id, msg);
+      } else if (msg.type === 'bots' && conn.host) {
+        const room = conn.host.room;
+        if (msg.delta > 0) room.addBot(cleanLevel(msg.level));
+        else if (msg.delta < 0) room.removeBot();
+        else return;
+        broadcast(conn.host, room.rosterMessage());
       } else if (msg.type === 'ping') {
         send(ws, { type: 'pong', t: Number.isFinite(msg.t) ? msg.t : 0 });
       }

@@ -23,6 +23,26 @@
       <label>Код комнаты
         <input id="room" maxlength="8" placeholder="Пусто — создать новую комнату">
       </label>
+      <div class="row">
+        <label>Боты
+          <select id="bots">
+            <option value="0">Нет</option>
+            <option value="1">1</option>
+            <option value="2" selected>2</option>
+            <option value="3">3</option>
+            <option value="5">5</option>
+            <option value="7">7</option>
+          </select>
+        </label>
+        <label>Сложность
+          <select id="level">
+            <option value="easy">Лёгкая</option>
+            <option value="normal" selected>Средняя</option>
+            <option value="hard">Сложная</option>
+          </select>
+        </label>
+      </div>
+      <p class="tip small">Боты добавляются только в новую комнату. Если заходите к другу по коду, их количество задаёт он.</p>
       <button id="play" type="submit">Играть</button>
       <div id="menu-error" class="error" role="alert"></div>
 
@@ -35,6 +55,10 @@
     <div class="hud-tl">
       <div class="chip">Комната: <b id="room-code">—</b></div>
       <button id="copy-link" type="button">Скопировать ссылку</button>
+      <div class="botctl"><span class="muted">Боты</span>
+        <button id="bot-minus" type="button" title="Убрать бота">−</button>
+        <button id="bot-plus" type="button" title="Добавить бота">+</button>
+      </div>
       <div id="ping" class="muted"></div>
     </div>
 

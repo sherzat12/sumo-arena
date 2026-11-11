@@ -176,3 +176,31 @@ test('пустая комната удаляется из памяти', async (
   for (let i = 0; i < 40 && srv.rooms.has('TEMP'); i++) await sleep(25);
   assert.ok(!srv.rooms.has('TEMP'));
 });
+
+test('боты: заказываются при создании комнаты, добавляются и убираются по сообщению', async () => {
+  const a = client();
+  await a.open;
+  a.send({ type: 'join', room: 'BOTS', name: 'Шер', bots: 2, level: 'hard' });
+  await a.waitFor((m) => m.type === 'welcome');
+  const roster = await a.waitFor((m) => m.type === 'roster' && m.players.length === 3);
+  assert.equal(roster.players.filter((p) => p.bot).length, 2);
+
+  a.send({ type: 'bots', delta: 1 });
+  await a.waitFor((m) => m.type === 'roster' && m.players.length === 4);
+  a.send({ type: 'bots', delta: -1 });
+  a.send({ type: 'bots', delta: -1 });
+  await a.waitFor((m) => m.type === 'roster' && m.players.length === 2);
+
+  // друг заходит по коду и просит ботов — в уже созданной комнате это игнорируется
+  const b = client();
+  await b.open;
+  b.send({ type: 'join', room: 'BOTS', name: 'Друг', bots: 5 });
+  await b.waitFor((m) => m.type === 'welcome');
+  const r2 = await b.waitFor((m) => m.type === 'roster' && m.players.length === 3);
+  assert.equal(r2.players.filter((p) => p.bot).length, 1);
+
+  // в снимках видны и люди, и боты
+  const snap = await a.waitFor((m) => m.type === 's' && m.p.length === 3);
+  assert.equal(snap.p.length, 3);
+  a.ws.close(); b.ws.close();
+});

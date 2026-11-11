@@ -27,8 +27,9 @@ html, body {
   inset: 0;
   z-index: 5;
   display: flex;
-  align-items: center;
+  align-items: safe center;
   justify-content: center;
+  overflow-y: auto;
   padding: 16px;
   background: radial-gradient(ellipse at center, rgba(25, 12, 48, 0.45), rgba(8, 4, 16, 0.88));
 }
@@ -67,6 +68,22 @@ input {
 }
 input:focus { border-color: var(--accent); }
 #room { text-transform: uppercase; }
+.row { display: flex; gap: 12px; }
+.row label { flex: 1; }
+select {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 12px 10px;
+  font: inherit;
+  color: var(--text);
+  background: #241a3d;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+}
+.tip.small { margin: 0 0 12px; }
+.botctl { display: flex; align-items: center; gap: 6px; }
+.botctl button { padding: 2px 12px; font-size: 1.1rem; line-height: 1.3; }
 
 button {
   font: inherit;

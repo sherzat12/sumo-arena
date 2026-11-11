@@ -2,6 +2,7 @@
 // Не знает про сеть — поэтому легко тестируется: step(dt) двигает мир, snapshot() отдаёт состояние.
 import * as CANNON from 'cannon-es';
 import { CONFIG } from '../shared/config.js';
+import { BOT_NAMES, cleanLevel, makeBotState, thinkBot } from './bot.js';
 
 const { arena, player: P, box: B } = CONFIG;
 const r2 = (v) => Math.round(v * 100) / 100;
@@ -19,6 +20,8 @@ export class Room {
     this.state = 'play';        // 'play' | 'win'
     this.winner = null;
     this.resetAt = 0;
+    this.nextBotId = 1_000_000; // id ботов не пересекаются с id людей
+    this.botLevel = 'normal';
 
     const world = new CANNON.World({ gravity: new CANNON.Vec3(0, CONFIG.gravity, 0) });
     world.broadphase = new CANNON.NaiveBroadphase(); // тел мало — этого достаточно
@@ -79,8 +82,17 @@ export class Room {
 
   // ---------- игроки ----------
 
-  addPlayer(id, name) {
-    if (this.players.size >= CONFIG.maxPlayers) return null;
+  get botCount() {
+    let n = 0;
+    for (const p of this.players.values()) if (p.bot) n++;
+    return n;
+  }
+
+  // Человеку всегда найдётся место: если комната забита ботами, один уступает.
+  addPlayer(id, name, { bot = null } = {}) {
+    if (this.players.size >= CONFIG.maxPlayers) {
+      if (bot || !this.removeBot()) return null;
+    }
     const used = new Set([...this.players.values()].map((p) => p.color));
     let color = 0;
     while (used.has(color)) color++;
@@ -98,6 +110,7 @@ export class Room {
       input: { x: 0, z: 0, fx: 0, fz: -1, jump: false, dash: false },
       grounded: false, lastHit: null,
       dashReadyAt: 0, dashUntil: 0, lastJump: -1, respawnAt: 0,
+      bot,
     };
     body.addEventListener('collide', (ev) => this._onCollide(p, ev));
     this.players.set(id, p);
@@ -112,6 +125,29 @@ export class Room {
     if (p.inWorld) this.world.removeBody(p.body);
     this.bodyOwner.delete(p.body.id);
     this.players.delete(id);
+  }
+
+  addBot(level) {
+    this.botLevel = cleanLevel(level ?? this.botLevel);
+    const used = new Set([...this.players.values()].map((p) => p.name));
+    const free = BOT_NAMES.filter((n) => !used.has('Бот ' + n));
+    const pick = free.length ? free[Math.floor(this.rng() * free.length)] : String(this.nextBotId);
+    return this.addPlayer(this.nextBotId++, 'Бот ' + pick, { bot: makeBotState(this.botLevel) });
+  }
+
+  removeBot() {
+    let last = null;
+    for (const p of this.players.values()) if (p.bot) last = p;
+    if (!last) return false;
+    this.removePlayer(last.id);
+    return true;
+  }
+
+  // Доводит число ботов до count (но не больше свободных мест).
+  setBots(count, level) {
+    if (level) this.botLevel = cleanLevel(level);
+    while (this.botCount > count) this.removeBot();
+    while (this.botCount < count && this.players.size < CONFIG.maxPlayers) this.addBot(this.botLevel);
   }
 
   setInput(id, raw) {
@@ -175,7 +211,10 @@ export class Room {
     if (this.state === 'win' && now >= this.resetAt) this._resetMatch();
 
     for (const p of this.players.values()) {
-      if (p.alive) this._control(p, now);
+      if (p.alive) {
+        if (p.bot) thinkBot(this, p, now);
+        this._control(p, now);
+      }
       else if (now >= p.respawnAt) this._spawn(p);
     }
 
@@ -305,7 +344,7 @@ export class Room {
   rosterMessage() {
     return {
       type: 'roster',
-      players: [...this.players.values()].map((p) => ({ id: p.id, name: p.name, color: p.color })),
+      players: [...this.players.values()].map((p) => ({ id: p.id, name: p.name, color: p.color, bot: !!p.bot })),
     };
   }
 

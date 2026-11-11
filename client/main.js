@@ -8,7 +8,8 @@ import { Sfx } from './audio.js';
 const $ = (sel) => document.querySelector(sel);
 const el = {
   menu: $('#menu'), form: $('#join-form'), name: $('#name'), room: $('#room'),
-  error: $('#menu-error'), play: $('#play'),
+  error: $('#menu-error'), play: $('#play'), bots: $('#bots'), level: $('#level'),
+  botPlus: $('#bot-plus'), botMinus: $('#bot-minus'),
   hud: $('#hud'), roomCode: $('#room-code'), copy: $('#copy-link'), ping: $('#ping'),
   goal: $('#goal'), board: $('#scoreboard'), feed: $('#feed'), dash: $('#dash-fill'),
   hint: $('#hint'), banner: $('#banner'),
@@ -42,7 +43,9 @@ el.form.addEventListener('submit', (e) => {
   const name = el.name.value.trim();
   try { localStorage.setItem('sumo-name', name); } catch { /* не критично */ }
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  net.connect(`${proto}://${location.host}/ws`, { type: 'join', name, room: el.room.value.trim() });
+  net.connect(`${proto}://${location.host}/ws`, {
+    type: 'join', name, room: el.room.value.trim(), bots: Number(el.bots.value), level: el.level.value,
+  });
 });
 
 net.on('welcome', (m) => {
@@ -135,6 +138,9 @@ el.copy.addEventListener('click', async () => {
   }
   setTimeout(() => { el.copy.textContent = 'Скопировать ссылку'; }, 1800);
 });
+
+el.botPlus.addEventListener('click', () => net.send({ type: 'bots', delta: 1, level: el.level.value }));
+el.botMinus.addEventListener('click', () => net.send({ type: 'bots', delta: -1 }));
 
 controls.onMute = () => addFeed(sfx.toggleMute() ? 'Звук выключен' : 'Звук включён', false);
 document.addEventListener('pointerlockchange', () => {
