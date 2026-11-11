@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: sumo-arena
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health

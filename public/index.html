@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sumo Arena — 3D онлайн</title>
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "three": "/vendor/three/build/three.module.js" } }
+  </script>
+</head>
+<body>
+  <canvas id="view"></canvas>
+
+  <div id="menu" class="overlay">
+    <form id="join-form" class="card" autocomplete="off">
+      <h1>Sumo Arena</h1>
+      <p class="lead">Сталкивай соперников с парящей арены в лаву. Побеждает тот, кто первым наберёт 7 очков.</p>
+
+      <label>Ваше имя
+        <input id="name" maxlength="14" placeholder="Например, Шер" required>
+      </label>
+      <label>Код комнаты
+        <input id="room" maxlength="8" placeholder="Пусто — создать новую комнату">
+      </label>
+      <button id="play" type="submit">Играть</button>
+      <div id="menu-error" class="error" role="alert"></div>
+
+      <p class="tip">Чтобы играть с другом, создайте комнату и отправьте ему ссылку (кнопка внутри игры) — или пусть введёт тот же код комнаты.</p>
+      <p class="tip">Лучше всего играть с компьютера: клавиатура и мышь.</p>
+    </form>
+  </div>
+
+  <div id="hud" hidden>
+    <div class="hud-tl">
+      <div class="chip">Комната: <b id="room-code">—</b></div>
+      <button id="copy-link" type="button">Скопировать ссылку</button>
+      <div id="ping" class="muted"></div>
+    </div>
+
+    <div class="hud-tr">
+      <div class="muted">До победы: <span id="goal"></span></div>
+      <ol id="scoreboard"></ol>
+    </div>
+
+    <div id="feed"></div>
+
+    <div class="hud-bottom">
+      <div class="dash"><div id="dash-fill"></div><span>Рывок (Shift)</span></div>
+      <div class="keys">WASD — движение · Пробел — прыжок · Shift — рывок · мышь или Q/E — камера · M — звук</div>
+    </div>
+    <div id="hint">Кликните по игре, чтобы вращать камеру мышью (Esc — отпустить)</div>
+  </div>
+
+  <div id="banner" hidden></div>
+
+  <script type="module" src="/client/main.js"></script>
+</body>
+</html>

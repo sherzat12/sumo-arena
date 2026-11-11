@@ -1,0 +1,20 @@
+{
+  "name": "sumo-arena",
+  "version": "1.0.0",
+  "description": "3D multiplayer sumo arena with physics",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "start": "node server/main.js"
+  },
+  "license": "MIT",
+  "type": "module",
+  "private": "true",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "cannon-es": "^0.20.0",
+    "three": "^0.187.0",
+    "ws": "^8.22.2"
+  }
+}
